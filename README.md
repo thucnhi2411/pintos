@@ -20,7 +20,7 @@ The pintos program offers several options for configuring the simulator or the v
 
 The Pintos kernel has commands and options other than run. These are not very interesting for now, but you can see a list of them using -h, e.g. pintos -h.
 
-##Testing
+## Testing
 Testing
 Your test result grade will be based on our tests. Each project part has several tests, each of which has a name beginning with tests. To completely test your submission, invoke make check from the project build directory. This will build and run each test and print a "pass" or "fail" message for each one. When a test fails, make check also prints some details of the reason for failure. After running all the tests, make check also prints a summary of the test results.
 
