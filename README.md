@@ -1,5 +1,15 @@
 # pintos
 
+## Work
+When start new work:  
+```git pull```  
+```git checkout -b [Branch_name]```  
+
+Do something in your own branch, want to commit:  
+```git add --a```  
+```git commit -m "[message]"```  
+```git push origin [Branch_name]``` 
+
 ## Building Pintos
 As the next step, build the source code supplied for the first project. 
 First, cd into the threads directory. Then, issue the ```make``` command. This will create a build directory under threads, populate it with a Makefile and a few subdirectories, and then build the kernel inside. The entire build should take less than 30 seconds.
