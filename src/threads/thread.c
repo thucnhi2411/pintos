@@ -432,13 +432,13 @@ thread_calc_priority()
 }
 
 void
-update_recent_cpu(struct thread* t, void* aux){
+update_recent_cpu(struct thread* t, void* aux UNUSED){
   t->recent_cpu = ((2 * thread_get_load_avg())/((2 * thread_get_load_avg())+1)) * (t->recent_cpu) + t->nice;
 }
 
 void
-update_load_avg(struct thread* t, void* aux){
-  load_avg = (int)((59/60)*thread_get_load_avg() + (1/60)*(list_size(ready_list)-1));
+update_load_avg(struct thread* t, void* aux UNUSED){
+  load_avg = (int)((59/60)*thread_get_load_avg() + (1/60)*((int)(list_size(&ready_list)-1)));
 }
 
 /* Returns the current thread's nice value. */

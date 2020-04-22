@@ -142,7 +142,7 @@ int thread_get_priority (void);
 void thread_set_priority (int);
 int thread_calc_priority(void);
 void update_recent_cpu(struct thread* t, void* aux UNUSED);
-void update_load_avg(struct thread* t, void* aux);
+void update_load_avg(struct thread* t, void* aux UNUSED);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
