@@ -391,19 +391,21 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
-  enum intr_level old_level = intr_disable();
+  if(!thread_mlfqs){
+    enum intr_level old_level = intr_disable();
 
-  int old_priority = thread_current() -> priority;
-  if(new_priority > PRI_MAX){
-    new_priority = PRI_MAX;
-  }else if(new_priority < PRI_MIN){
-    new_priority = PRI_MIN;
+    int old_priority = thread_current() -> priority;
+    if(new_priority > PRI_MAX){
+      new_priority = PRI_MAX;
+    }else if(new_priority < PRI_MIN){
+      new_priority = PRI_MIN;
+    }
+    thread_current ()->priority = new_priority;
+    if (old_priority > thread_current() -> priority)
+      check_to_yield();
+
+    intr_set_level(old_level);
   }
-  thread_current ()->priority = new_priority;
-  if (old_priority > thread_current() -> priority)
-    check_to_yield();
-
-  intr_set_level(old_level);
 }
 
 /* Returns the current thread's priority. */
@@ -421,14 +423,27 @@ thread_set_nice (int new_nice UNUSED)
   thread_current() -> nice = new_nice;
   //recalcualte thread priority
   //if not highest priority, yields
-  int temp_priority = thread_calc_priority();
-  thread_set_priority(temp_priority);
+  int new_priority = thread_calc_priority();
+
+  enum intr_level old_level = intr_disable();
+
+  int old_priority = thread_current() -> priority;
+  if(new_priority > PRI_MAX){
+    new_priority = PRI_MAX;
+  }else if(new_priority < PRI_MIN){
+    new_priority = PRI_MIN;
+  }
+  thread_current ()->priority = new_priority;
+  if (old_priority > thread_current() -> priority)
+    check_to_yield();
+
+  intr_set_level(old_level);
 }
 
 int
 thread_calc_priority()
 {
-  return  (int)(PRI_MAX - (thread_get_recent_cpu() / 4) - (thread_get_nice() * 2));
+  return  (int)(PRI_MAX -  (thread_get_recent_cpu() / 4) - (thread_get_nice() * 2));
 }
 
 void
@@ -547,7 +562,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
-  t->priority = priority;
+  if(!thread_mlfqs){
+    t->priority = priority;
+  }
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 }
