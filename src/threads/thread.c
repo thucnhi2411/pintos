@@ -19,6 +19,9 @@
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
 #define THREAD_MAGIC 0xcd6abf4b
+#define NICE_DEFAULT 0
+#define RECENT_CPU_DEFAULT 0
+#define LOAD_AVG_DEFAULT 0
 
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
@@ -70,6 +73,7 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+int load_avg;
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -112,7 +116,7 @@ thread_start (void)
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
-
+  load_avg = LOAD_AVG_DEFAULT;
   /* Start preemptive thread scheduling. */
   intr_enable ();
 
@@ -566,6 +570,9 @@ init_thread (struct thread *t, const char *name, int priority)
   }
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
+
+  t->nice = NICE_DEFAULT;
+  t->recent_cpu = RECENT_CPU_DEFAULT;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -681,3 +688,62 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+void mlfqs_increment (void){
+  ASSERT(thread_mlfqs);
+  ASSERT(intr_context());
+
+  struct thread *t = thread_current();
+  if(t == idle_thread){
+    return;
+  }
+  t->recent_cpu = add_f_f(t->recent_cpu, 1);
+}
+
+void mlfqs_recent_cpu (struct thread *t){
+  ASSERT(thread_mlfqs);
+  ASSERT(t != idle_thread);
+
+  int coef = div_f_f(mul_f_f(load_avg, 2), add_f_f(mul_f_f(load_avg, 2), 1));
+  int term = mul_f_f(coef, t->recent_cpu);
+  t->recent_cpu = add_f_f(term, t->nice);
+}
+void mlfqs_priority (struct thread *t){
+  if(t == idle_thread){
+    return;
+  }
+  ASSERT(thread_mlfqs);
+  ASSERT(t != idle_thread);
+
+  int new_priority = PRI_MAX;
+  new_priority = sub_f_f(new_priority, div_f_f(t->recent_cpu, 4));
+  new_priority = sub_f_f(new_priority, 2*t->nice);
+  t->priority = new_priority;
+  if(t->priority < PRI_MIN){
+    t->priority = PRI_MIN;
+  } else if(t->priority > PRI_MAX){
+    t->priority = PRI_MAX;
+  }
+}
+
+void mlfqs_recalc (void){
+  ASSERT(thread_mlfqs);
+  ASSERT(intr_context());
+
+  size_t ready_threads = list_size(&ready_list);
+  if(thread_current() != idle_thread){
+    ready_threads++;
+  }
+  load_avg = add_f_f(div_f_f(mul_f_f(load_avg, 59), 60), div_f_f(ready_threads, 60));
+
+  struct thread *t;
+  struct list_elem *e = list_begin(&all_list);
+  for(; e != list_end(&all_list); e = list_next(e)){
+    t = list_entry(e, struct thread, allelem);
+    if(t != idle_thread){
+      mlfqs_recent_cpu(t);
+      mlfqs_priority(t);
+    }
+  }
+}
+
