@@ -12,7 +12,7 @@ Multiply x by n: 	x * n
 Divide x by y: 	((int64_t) x) * f / y
 Divide x by n: 	x / n
 */
-
+#include <stdint.h>
 #define FIXPOINT 16384
 int i_to_f (int n);
 int f_to_i_zero(int x);
